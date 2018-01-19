@@ -1,0 +1,93 @@
+#include "FeatureClassXMLWriter.h"
+#include "GeoFeatureXMLWriter.h"
+#include "FeatureClass.h"
+#include "GeologicFeature.h"
+#include "AbstractGML.h"
+
+
+FeatureClassXMLWriter::FeatureClassXMLWriter(void)
+{
+}
+
+
+FeatureClassXMLWriter::~FeatureClassXMLWriter(void)
+{
+}
+
+void FeatureClassXMLWriter::WriteFeatureClass(gmml::GeologicFeatureClass* feature_class, std::ofstream& xml_stream)
+{
+	std::string xmlNode_FeatureClass = "FeatureClass";
+	std::string xmlNode_GeoFeatureClass = "GeoFeatureClass";
+	xml_stream << "<" << xmlNode_FeatureClass << ">" << std::endl;
+	xml_stream << "<" << xmlNode_GeoFeatureClass << " gml:id=\"" << feature_class->getID() << "\">" << std::endl;
+	xml_stream << "<gml:name>" << feature_class->getName() << "</gml:name>" << std::endl;
+
+	WriteSchema(feature_class, xml_stream);
+	WriteMember(feature_class, xml_stream);
+
+	xml_stream << "</" << xmlNode_GeoFeatureClass << ">" << std::endl;
+	xml_stream << "</" << xmlNode_FeatureClass << ">" << std::endl;
+}
+
+void FeatureClassXMLWriter::WriteSchema(gmml::GeologicFeatureClass* feature_class, std::ofstream& xml_stream)
+{
+	xml_stream << "<Schema>" << std::endl;
+	
+	int fc_schema_count = feature_class->GetFeatureClassSchemaCount();
+	for(int i = 0; i < fc_schema_count; i++)
+	{
+		AttributeValue schema = feature_class->GetFeatureClassSchema(i);
+		xml_stream << "<swe:field name=\"" << schema.fieldName <<"\">" <<std::endl;
+		std::string value_type;
+
+		
+
+			if(strcmp(schema.fieldType .c_str(), "Text"))
+			{
+				value_type =  "swe:Text>";
+			}
+
+			if(schema.fieldType == std::string("Text"))
+			{
+				value_type =  "swe:Text>";
+			
+			}
+
+		if(schema.fieldType == std::string("Count"))
+		{
+			value_type =  "swe:Count>";
+		}
+
+		if(schema.fieldType == std::string("Double"))
+		{
+			value_type =  "swe:Double>";
+		}
+
+		if(value_type.size())
+		{
+			xml_stream << "<" << value_type << std::endl;
+
+			xml_stream << "</" <<value_type<< std::endl;
+		}
+		xml_stream << "</swe:field>" << std::endl;
+	}
+	xml_stream << "</Schema>" << std::endl;
+}
+
+void FeatureClassXMLWriter::WriteMember(gmml::GeologicFeatureClass* feature_class, std::ofstream& xml_stream)
+{
+	xml_stream << "<Features>" << std::endl;
+	int feature_count = feature_class->GetGeologicFeatureCount();
+	for (int i = 0; i < feature_count; i++)
+	{
+		xml_stream << "<Feature>" << std::endl;
+		gmml::GeologicFeature* feature = feature_class->GetGeologicFeature(i);
+
+		GeoFeatureXMLWriter feature_writer;
+		feature_writer.WriteFeature(feature, xml_stream);
+
+		xml_stream << "</Feature>" << std::endl;
+	}
+	xml_stream << "</Features>" << std::endl;
+
+}

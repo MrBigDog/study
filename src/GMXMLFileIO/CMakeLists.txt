@@ -1,0 +1,124 @@
+IF   (DYNAMIC_GWEARTH)
+    ADD_DEFINITIONS(-DGMXMLFILEIO_LIBRARY)
+ELSE (DYNAMIC_GWEARTH)
+    ADD_DEFINITIONS(-DGMXMLFILEIO_LIBRARY_STATIC)
+ENDIF(DYNAMIC_GWEARTH)
+
+IF(WIN32)
+    IF(MSVC)
+        SET(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /NODEFAULTLIB:MSVCRT")
+    ENDIF(MSVC)
+	LIST(APPEND TARGET_EXTERNAL_LIBRARIES psapi)
+ENDIF(WIN32)
+
+SET(LIB_NAME "GMXMLFileIO")
+
+SET(HEADER_PATH ${PROJECT_SOURCE_DIR}/include/${LIB_NAME})
+#INCLUDE_DIRECTORIES(AFTER ${OSG_INCLUDE_DIR})
+#INCLUDE_DIRECTORIES(AFTER ${OSGEARTH_INCLUDE_DIR})
+
+SET(LIB_PUBLIC_HEADERS
+	Export.h
+	FeatureClassXMLReader.h
+	FeatureClassXMLWriter.h
+	FeatureRelationXMLReader.h
+	FeatureRelationXMLWriter.h
+	FeatureXMLReader.h
+	Geo3DLayerXMLReader.h
+	Geo3DMapXMLReader.h
+	Geo3DMapXMLWriter.h
+	Geo3DProjectXMLReader.h
+	Geo3DProjectXMLWriter.h
+	Geo3DStyleXMLReader.h
+	Geo3DStyleXMLWriter.h
+	GeoFeatureXMLReader.h
+	GeoFeatureXMLWriter.h
+	GeologicFeatureXMLReader.h
+	GeometryXMLReader.h
+	GeometryXMLWriter.h
+	GeoModelXMLReader.h
+	GeoModelXMLWriter.h
+	GeoStyleXMLReader.h
+	MappedFeatureXMLReader.h
+	MetaDataxmlReader.h
+	SpatialRelationXMLReader.h
+	XMLBase64.h
+	#XMLMetaDataReader.h
+	XMLReader.h
+	XMLWriter.h
+)
+
+SET(TARGET_SRC
+	FeatureClassXMLReader.cpp
+	FeatureClassXMLWriter.cpp
+	FeatureRelationXMLReader.cpp
+	FeatureRelationXMLWriter.cpp
+	FeatureXMLReader.cpp
+	Geo3DLayerXMLReader.cpp
+	Geo3DMapXMLReader.cpp
+	Geo3DMapXMLWriter.cpp
+	Geo3DProjectXMLReader.cpp
+	Geo3DProjectXMLWriter.cpp
+	Geo3DStyleXMLReader.cpp
+	Geo3DStyleXMLWriter.cpp
+	GeoFeatureXMLReader.cpp
+	GeoFeatureXMLWriter.cpp
+	GeologicFeatureXMLReader.cpp
+	GeometryXMLReader.cpp
+	GeometryXMLWriter.cpp
+	GeoModelXMLReader.cpp
+	GeoModelXMLWriter.cpp
+	GeoStyleXMLReader.cpp
+	MappedFeatureXMLReader.cpp
+	MetaDataxmlReader.cpp
+	SpatialRelationXMLReader.cpp
+	xmlBase64.cpp
+	#XMLMetaDataReader.cpp
+	XMLReader.cpp
+	XMLWriter.cpp
+)
+
+ADD_LIBRARY(
+    ${LIB_NAME} ${GWEARTH_USER_DEFINED_DYNAMIC_OR_STATIC}
+    ${LIB_PUBLIC_HEADERS}
+    ${TARGET_SRC} )
+	
+INCLUDE_DIRECTORIES(
+	${GWEARTH_SOURCE_DIR}/Src 
+	${GWEARTH_SOURCE_DIR}/Src/GMXMLFileIO 
+	${GWEARTH_SOURCE_DIR}/Src/GM_XML 
+	${GWEARTH_SOURCE_DIR}/Src/vtklibxml2
+	${GWEARTH_SOURCE_DIR}/Src/vtkExtending
+	${GWEARTH_SOURCE_DIR}/Src/GMLFeature
+	${ICONV_INCLUDE_DIR}
+	)
+
+#IF (WIN32)
+#  LINK_EXTERNAL(${LIB_NAME} ${TARGET_EXTERNAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${MATH_LIBRARY})
+#ELSE(WIN32)
+#  LINK_EXTERNAL(${LIB_NAME} ${TARGET_EXTERNAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${MATH_LIBRARY})
+#ENDIF(WIN32)
+
+#OPTION(NRL_STATIC_LIBRARIES "Link osgEarth against static GDAL and cURL, including static OpenSSL, Proj4, JPEG, PNG, and TIFF." OFF)
+#if(NOT NRL_STATIC_LIBRARIES)
+#  LINK_WITH_VARIABLES(${LIB_NAME} OSG_LIBRARY ZLIB_LIBRARIES)
+#else(NOT NRL_STATIC_LIBRARIES)
+#  LINK_WITH_VARIABLES(${LIB_NAME} OSG_LIBRARY OSGUTIL_LIBRARY OSGSIM_LIBRARY OSGTERRAIN_LIBRARY OSGDB_LIBRARY OSGFX_LIBRARY OSGVIEWER_LIBRARY OSGTEXT_LIBRARY OSGGA_LIBRARY OSGSHADOW_LIBRARY #OPENTHREADS_LIBRARY CURL_LIBRARY GDAL_LIBRARY ZLIB_LIBRARIES OSGMANIPULATOR_LIBRARY SSL_EAY_RELEASE LIB_EAY_RELEASE TIFF_LIBRARY PROJ4_LIBRARY PNG_LIBRARY JPEG_LIBRARY)
+#endif(NOT NRL_STATIC_LIBRARIES)
+
+LINK_WITH_VARIABLES(${LIB_NAME} 
+								ICONV_LIBRARIES 
+								)
+
+
+LINK_INTERNAL(${LIB_NAME} 
+	vtklibxml2
+	vtkExtending
+	GMLFeature
+	GM_XML
+	)
+ 
+#LINK_INTERNAL(${LIB_NAME} shlwapi)
+#LINK_CORELIB_DEFAULT(${LIB_NAME} ${CMAKE_THREAD_LIBS_INIT} ${MATH_LIBRARY})
+
+INCLUDE(ModuleInstall OPTIONAL)
