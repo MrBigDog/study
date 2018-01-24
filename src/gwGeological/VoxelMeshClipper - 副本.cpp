@@ -7,7 +7,9 @@
 #include <osg/Geode>
 #include <osg/ShadeModel>
 #include <osg/PolygonMode>
+#include <osg/MatrixTransform>
 #include <osg/TriangleIndexFunctor>
+
 #include <osgUtil/Tessellator>
 
 namespace
@@ -113,15 +115,14 @@ namespace
 		const osg::Vec3d& a,
 		const osg::Vec3d& b,
 		const osg::Vec3d& c,
-		const osg::Vec3d& planeNormal,
-		const osg::Vec3d& planePoint,
+		const osg::Plane& plane,
 		float& intersect1coeff,
 		float& intersect2coeff)
 	{
 		osg::Vec3 line1; sub3(b, a, line1);
 		osg::Vec3 line2; sub3(c, a, line2);
-		intersect1coeff = linePlaneCoefficient(a, line1, planeNormal, planePoint);
-		intersect2coeff = linePlaneCoefficient(a, line2, planeNormal, planePoint);
+		intersect1coeff = linePlaneCoefficient(a, line1, plane/*planeNormal, planePoint*/);
+		intersect2coeff = linePlaneCoefficient(a, line2, plane/*planeNormal, planePoint*/);
 	}
 
 	//-------------------------------------------------------------------------------------------------------------
@@ -306,15 +307,14 @@ namespace
 	void intersectTrangle(const osg::Vec3Array* va,
 		const osg::Vec4Array* ca,
 		int ia, int ib, int ic,
-		const osg::Vec3& planeNormal,
-		const osg::Vec3& planePoint,
+		const osg::Plane& plane,
 		PolylineConnector<VC_FVF>& connector)
 	{
 		if (!va || !ca) return;
 		if (ia < 0 || ib < 0 || ic < 0) return;
 
 		float coeff1, coeff2;
-		getlinePlaneCoefficient((*va)[ia], (*va)[ib], (*va)[ic], planeNormal, planePoint, coeff1, coeff2);
+		getlinePlaneCoefficient((*va)[ia], (*va)[ib], (*va)[ic], plane, coeff1, coeff2);
 
 		osg::Vec3 intersect1, intersect2;
 		osg::Vec4 color1, color2;
@@ -332,7 +332,7 @@ namespace
 VolelMeshClipper::VolelMeshClipper(FVF_TYPE type) :_fvfType(type) {}
 VolelMeshClipper::~VolelMeshClipper() {}
 
-osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& planePoint, const osg::Vec3d& planeNormal)
+osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Plane& plane)
 {
 	if (!geom) return 0L;
 
@@ -358,7 +358,7 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 	PolylineConnector<VC_FVF> connector;
 
 	int faceCount = indexCount / 3;
-	osg::Plane plane(planeNormal, planePoint);
+	//osg::Plane plane(planeNormal, planePoint);
 	for (int i = 0; i < faceCount; ++i)
 	{
 		int i1 = (*ia)[i * 3 + 0];
@@ -398,7 +398,7 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 				if (v1Left) { ia = i1; ib = i2; ic = i3; }
 				else if (v2Left) { ia = i2; ib = i1; ic = i3; }
 				else if (v3Left) { ia = i3; ib = i1; ic = i2; }
-				intersectTrangle(va, ca, ia, ib, ic, planeNormal, planePoint, connector);
+				intersectTrangle(va, ca, ia, ib, ic, plane, connector);
 			}
 			else if (pointsToLeft == 2)
 			{
@@ -406,7 +406,7 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 				if (!v1Left) { ia = i1; ib = i2; ic = i3; }
 				else if (!v2Left) { ia = i2; ib = i1; ic = i3; }
 				else if (!v3Left) { ia = i3; ib = i1; ic = i2; }
-				intersectTrangle(va, ca, ia, ib, ic, planeNormal, planePoint, connector);
+				intersectTrangle(va, ca, ia, ib, ic, plane, connector);
 			}
 		}
 		else if (pointsOnPlane == 1)
@@ -418,7 +418,7 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 					int ia = -1, ib = -1, ic = -1;
 					if (v2Left) { ia = i2; ib = i1; ic = i3; }
 					else if (v3Left) { ia = i3; ib = i1; ic = i2; }
-					intersectTrangle(va, ca, ia, ib, ic, planeNormal, planePoint, connector);
+					intersectTrangle(va, ca, ia, ib, ic, plane, connector);
 				}
 			}
 			else if (v2OnPlane)
@@ -428,7 +428,7 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 					int ia = -1, ib = -1, ic = -1;
 					if (v1Left) { ia = i1; ib = i2; ic = i3; }
 					else if (v3Left) { ia = i3; ib = i1; ic = i2; }
-					intersectTrangle(va, ca, ia, ib, ic, planeNormal, planePoint, connector);
+					intersectTrangle(va, ca, ia, ib, ic, plane, connector);
 				}
 			}
 			else if (v3OnPlane)
@@ -438,7 +438,7 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 					int ia = -1, ib = -1, ic = -1;
 					if (v1Left) { ia = i1; ib = i2; ic = i3; }
 					else if (v2Left) { ia = i2; ib = i1; ic = i3; }
-					intersectTrangle(va, ca, ia, ib, ic, planeNormal, planePoint, connector);
+					intersectTrangle(va, ca, ia, ib, ic, plane, connector);
 				}
 			}
 		}
@@ -488,12 +488,12 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 		geom->setColorArray(pca, osg::Array::BIND_PER_VERTEX);
 		geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::POLYGON, 0, pva->size()));
 
-		//osgUtil::Tessellator tscx;
+		osgUtil::Tessellator tscx;
 		//tscx.setTessellationNormal((plane.getNormal()));
-		//tscx.setTessellationType(osgUtil::Tessellator::TESS_TYPE_GEOMETRY);
-		//tscx.setBoundaryOnly(false);
-		//tscx.setWindingType(osgUtil::Tessellator::TESS_WINDING_NONZERO);
-		//tscx.retessellatePolygons(*geom);
+		tscx.setTessellationType(osgUtil::Tessellator::TESS_TYPE_GEOMETRY);
+		tscx.setBoundaryOnly(false);
+		tscx.setWindingType(osgUtil::Tessellator::TESS_WINDING_NONZERO);
+		tscx.retessellatePolygons(*geom);
 
 		if (!geode)geode = new osg::Geode;
 		geode->addDrawable(geom);
@@ -501,76 +501,65 @@ osg::Node* VolelMeshClipper::clipGeom(osg::Geometry* geom, const osg::Vec3d& pla
 	return geode.release();
 }
 
-osg::Node * VolelMeshClipper::clipGeom(osg::Geometry * geom, const osg::Plane & plane)
-{
-	osg::Vec4 vec = plane.asVec4();
-	osg::Vec3d pn = osg::Vec3(vec[0], vec[1], vec[2]);
-	osg::Vec3d pp = pn*vec[3];
-
-	return VolelMeshClipper::clipGeom(geom, pp, pn);
-	//return nullptr;
-}
-
-
-
-
 namespace
 {
 	/*class GeomVisitor :public osg::NodeVisitor
 	{
 	public:
-	GeomVisitor(const osg::Plane& plane) :osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN)
-	, _plane(plane), _clipRoot(0L) {}
+		GeomVisitor(const osg::Plane& plane) :osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN)
+			, _plane(plane), _clipRoot(0L) {}
 
-	void apply(osg::Geode& geode)
-	{
-	const osg::MatrixList& ml = geode.getWorldMatrices();
-	osg::Matrixd mat = ml[0];
-	osg::Matrixd invmat = osg::Matrix::inverse(mat);
+		void apply(osg::Geode& geode)
+		{
+			const osg::MatrixList& ml = geode.getWorldMatrices();
+			osg::Matrixd mat = ml[0];
+			osg::Matrixd invmat = osg::Matrix::inverse(mat);
 
-	osg::Plane plane(_plane);
-	plane.transform(invmat);
+			osg::Plane plane(_plane);
+			plane.transform(invmat);
 
-	osg::ref_ptr<osg::MatrixTransform> mt = new osg::MatrixTransform;
-	mt->setMatrix(mat);
+			osg::ref_ptr<osg::MatrixTransform> mt = new osg::MatrixTransform;
+			mt->setMatrix(mat);
 
-	for (unsigned int i = 0; i < geode.getNumDrawables(); ++i)
-	{
-	osg::Geometry* geom = geode.getDrawable(i)->asGeometry();
-	if (!geom) continue;
+			for (unsigned int i = 0; i < geode.getNumDrawables(); ++i)
+			{
+				osg::Geometry* geom = geode.getDrawable(i)->asGeometry();
+				if (!geom) continue;
 
-	osg::ref_ptr<osg::Node> clipnode = VolelMeshClipper::clipGeom(geom, plane);
-	if (clipnode.valid())
-	{
-	mt->addChild(clipnode);
-	}
-	}
-	if (mt->getNumChildren() > 0)
-	{
-	if (!_clipRoot) _clipRoot = new osg::Group;
-	_clipRoot->addChild(mt);
-	}
-	}
+				osg::ref_ptr<osg::Node> clipnode = VolelMeshClipper::clipGeom(geom, plane);
+				if (clipnode.valid())
+				{
+					mt->addChild(clipnode);
+				}
+			}
+			if (mt->getNumChildren() > 0)
+			{
+				if (!_clipRoot) _clipRoot = new osg::Group;
+				_clipRoot->addChild(mt);
+			}
+		}
 
-	osg::Node* getClipResult() { return _clipRoot.release(); }
+		osg::Node* getClipResult() { return _clipRoot.release(); }
 
 	private:
-	osg::Plane _plane;
-	osg::ref_ptr<osg::Group> _clipRoot;
+		osg::Plane _plane;
+		osg::ref_ptr<osg::Group> _clipRoot;
 	};*/
 
 	class GeomVisitor :public osg::NodeVisitor
 	{
 	public:
-		GeomVisitor(const osg::Plane& plane)
+		GeomVisitor(/*const osg::Vec3& pp, const osg::Vec3& pn*/const osg::Plane& plane)
 			:osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN)
 			, _plane(plane)
+			//, _planePoint(pp)
+			//, _planeNormal(pn)
 		{
 			_root = new osg::Group;
 			osg::ref_ptr<osg::PolygonMode> pm = new osg::PolygonMode;
 			pm->setMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::FILL);
 			_root->getOrCreateStateSet()->setAttributeAndModes(pm, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
-			//	_root->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+			_root->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
 
 			osg::ShadeModel* shadeModel = new osg::ShadeModel;
 			shadeModel->setDataVariance(osg::Object::STATIC);
@@ -594,6 +583,8 @@ namespace
 			}
 		}
 
+		//osg::Vec3 _planePoint;
+		//osg::Vec3 _planeNormal;
 		osg::Plane _plane;
 		osg::ref_ptr<osg::Group> _root;
 	};

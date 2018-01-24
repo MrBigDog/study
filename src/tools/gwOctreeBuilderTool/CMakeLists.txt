@@ -1,7 +1,7 @@
-SET(TARGET_H OctreeBuilder.h)
-SET(TARGET_SRC  OctreeBuilder.cpp main.cpp )
+SET(TARGET_H OctreeBuilder.h EffectUtil.h VoxelUtil.h)
+SET(TARGET_SRC  OctreeBuilder.cpp EffectUtil.cpp VoxelUtil.cpp main.cpp )
 
-INCLUDE_DIRECTORIES(${OSG_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${OSG_INCLUDE_DIR} ${GWEARTH_SOURCE_DIR}/Src)
 
 SET(TARGET_LIBRARIES_VARS 
 	OSG_LIBRARY 
@@ -13,5 +13,6 @@ SET(TARGET_LIBRARIES_VARS
 	)
 
 #SET(TARGET_COMMON_LIBRARIES gwGeologicalUtil )
+SET(TARGET_COMMON_LIBRARIES gwGeological gwGeologicalUtil )
 SET(EXECUTABLE_OUTPUT_PATH ${OUTPUT_LIBDIR})
 SETUP_APPLICATION(gwOctreeBuilder)

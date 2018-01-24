@@ -1,8 +1,13 @@
+#include <osg/Material>
+#include <osg/BlendFunc>
+#include <osg/BlendColor>
+#include <osg/LineSegment>
 #include <osg/MatrixTransform>
 #include <osg/ComputeBoundsVisitor>
 #include <osgDB/ReadFile>
 #include <osgGA/StateSetManipulator>
 #include <osgUtil/PrintVisitor>
+#include <osgAnimation/EaseMotion>
 #include <osgViewer/ViewerEventHandlers>
 #include <osgViewer/Viewer>
 #include <iostream>
@@ -10,18 +15,10 @@
 #include <sstream>
 
 #include "OctreeBuilder.h"
+#include "EffectUtil.h"
+#include "VoxelUtil.h"
+#include <gwGeological/TunnelGenerator.h>
 
-static float randomValue(float min, float max)
-{
-	return (min + (float)rand() / (RAND_MAX + 1.0f) * (max - min));
-}
-
-static osg::Vec3 randomVector(float min, float max)
-{
-	return osg::Vec3(randomValue(min, max),
-		randomValue(min, max),
-		randomValue(min, max));
-}
 
 template<typename T>
 static T min(const T& a, const T& b)
@@ -77,6 +74,37 @@ public:
 	}
 };
 
+
+class GeometryVisitor :public osg::NodeVisitor
+{
+public:
+	GeometryVisitor(const osg::Vec3d& pos) : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN), _pos(pos)
+	{
+	}
+
+	void apply(osg::Geode& geode)
+	{
+		for (unsigned int i = 0; i < geode.getNumDrawables(); ++i)
+		{
+			osg::Geometry* geom = geode.getDrawable(i)->asGeometry();
+			if (!geom) continue;
+
+			osg::Vec3Array* va = dynamic_cast<osg::Vec3Array*>(geom->getVertexArray());
+			if (!va) continue;
+
+			for (unsigned int j = 0; j < va->size(); ++j)
+			{
+				va->at(j) -= _pos;
+			}
+
+			geom->dirtyBound();
+		}
+	}
+
+private:
+	osg::Vec3d _pos;
+};
+
 class VoxelVisitor :public osg::NodeVisitor
 {
 public:
@@ -116,13 +144,21 @@ private:
 	ElementInfoVec _voxelElements;
 };
 
+
 //
 int main(int argc, char** argv)
 {
+	osg::ref_ptr<osg::Group> root = new osg::Group;
+
 	std::string fpath = "D:\\Geo3DGml_GIT\\Geo3DML\\data\\geo3dml_test_models\\cubeMode\\aa.xml";
 	std::string fpath0 = "E:/DATA/VoxelData/v1_all.osgb";
 
 	osg::ref_ptr<osg::Node> voxelModel = osgDB::readNodeFile(fpath);
+	osg::ref_ptr<osg::PolygonMode> pm = new osg::PolygonMode;
+	pm->setMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::POINT);
+	voxelModel->getOrCreateStateSet()->setAttributeAndModes(pm, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
+	//setTransparent(voxelModel->getOrCreateStateSet(), 0.2);
+	root->addChild(voxelModel);
 
 	osg::ComputeBoundsVisitor cbv;
 	voxelModel->accept(cbv);
@@ -135,22 +171,57 @@ int main(int argc, char** argv)
 
 	osg::Vec3d center = (bbMin + bbMax)*0.5;
 
-	osg::Vec3d newMin= center - osg::Vec3d(halfMaxDif, halfMaxDif, halfMaxDif);
-	osg::Vec3d newMax= center + osg::Vec3d(halfMaxDif, halfMaxDif, halfMaxDif);
+	GeometryVisitor gvv(center);
+	voxelModel->accept(gvv);
 
-	globalBound.set(newMin, newMax);
+	osg::ComputeBoundsVisitor cbvv;
+	voxelModel->accept(cbvv);
 
-	VoxelVisitor vv;
-	voxelModel->accept(vv);
+	globalBound = cbvv.getBoundingBox();
 
-	const ElementInfoVec& globalElements = vv.getVoxelElements();
+	osg::Plane plane(osg::Vec3d(0, 1, 0), center);
+	osg::ref_ptr<osg::Vec3dArray> va = new osg::Vec3dArray;
+	//va->push_back(osg::Vec3d((globalBound.xMax() + globalBound.xMin())*0.5, globalBound.yMax(), (globalBound.zMax() + globalBound.zMin())*0.5));
+	//va->push_back(osg::Vec3d((globalBound.xMax() + globalBound.xMin())*0.5, globalBound.yMin(), (globalBound.zMax() + globalBound.zMin())*0.5));
+	va->push_back(osg::Vec3d(globalBound.xMax(), (globalBound.yMax() + globalBound.yMin())*0.5, (globalBound.zMax() + globalBound.zMin())*0.5));
+	va->push_back(osg::Vec3d(globalBound.xMin(), (globalBound.yMax() + globalBound.yMin())*0.5, (globalBound.zMax() + globalBound.zMin())*0.5));
 
-	OctreeBuilder octree;
-	osg::ref_ptr<osg::Group> root = octree.build(0, globalBound, globalElements);
+	CircleTunelGenerator ctg(false);
+	root->addChild(ctg(voxelModel, va, 2.5));
 
-	std::ofstream out("octree_output.txt");
-	PrintNameVisitor printer(out);
-	root->accept(printer);
+	std::vector<osg::ref_ptr<osg::Node> > nodeInTunel;
+	getVoxelInTunel(va, 2.5, voxelModel, nodeInTunel);
+
+	std::cout << nodeInTunel.size() << std::endl;
+
+	osg::ref_ptr<osg::Group> tunelRoot = new osg::Group;
+
+	for (unsigned int i = 0; i < nodeInTunel.size(); ++i)
+	{
+		tunelRoot->addChild(nodeInTunel[i]);
+	}
+	//tunelRoot->setUpdateCallback(new FGRedoutCallback());
+	setBloomEffect3(tunelRoot, osg::Vec4(1, 1, 0, 1), osg::Vec4(1, 0, 0, 1));
+	root->addChild(tunelRoot);
+
+	//bloom_state(tunelRoot->getOrCreateStateSet());
+
+	//osg::Vec3d newMin = center - osg::Vec3d(halfMaxDif, halfMaxDif, halfMaxDif);
+	//osg::Vec3d newMax = center + osg::Vec3d(halfMaxDif, halfMaxDif, halfMaxDif);
+
+	//globalBound.set(newMin, newMax);
+
+	//VoxelVisitor vv;
+	//voxelModel->accept(vv);
+
+	//const ElementInfoVec& globalElements = vv.getVoxelElements();
+
+	//OctreeBuilder octree;
+	//osg::ref_ptr<osg::Group> root = octree.build(0, globalBound, globalElements);
+
+	//std::ofstream out("octree_output.txt");
+	//PrintNameVisitor printer(out);
+	//root->accept(printer);
 
 	osgViewer::Viewer viewer;
 	viewer.setSceneData(root.get());

@@ -1,7 +1,5 @@
 #include "Vector.h"
-#include <osg/Plane>
 #include <math.h>
-
 
 void add3(const osg::Vec3& first, const osg::Vec3& second, osg::Vec3& result)
 {
@@ -114,17 +112,23 @@ void lerp4(const osg::Vec4 & from, const osg::Vec4 & to, float t, osg::Vec4 & re
 	result.w() = from.w() + t * (to.w() - from.w());
 }
 
-float linePlaneCoefficient(const osg::Vec3& linePoint, const osg::Vec3& lineDir, const osg::Vec3& planeNormal, const osg::Vec3& planePoint)
+float linePlaneCoefficient(const osg::Vec3& linePoint, const osg::Vec3& lineDir, const osg::Plane& plane/*const osg::Vec3& planeNormal, const osg::Vec3& planePoint*/)
 {
-	osg::Plane plane(planeNormal, planePoint);
-
+	//osg::Plane plane(planeNormal, planePoint);
 	osg::Vec3 point2 = linePoint + lineDir;
-
 	float dis1 = abs(plane.distance(linePoint));
 	float dis2 = abs(plane.distance(point2));
 	float sum = dis1 + dis2;
-
 	float result0 = sum == 0.0 ? 0.0f : dis1 / (dis1 + dis2);
+
+	//osg::Vec3 diff;
+	//float dot1;
+	//float dot2;
+	//float result;
+	//sub3(planePoint, linePoint, diff);
+	//dot1 = dot3(planeNormal, diff);
+	//dot2 = dot3(planeNormal, lineDir);
+	//result = dot1 / dot2;
 
 	return result0;
 }

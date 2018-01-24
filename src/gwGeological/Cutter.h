@@ -446,8 +446,6 @@ private:
 		return ps + dir*len*rate;
 	}
 
-
-
 private:
 	osg::ref_ptr<const osg::Vec3Array> vAry_;
 	osg::ref_ptr<const osg::Vec3Array> nAry_;
@@ -499,7 +497,7 @@ class Cutter : public osg::NodeVisitor
 public:
 	Cutter(const osg::Polytope& polytope)
 		: osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN)
-		, polytope_(polytope), result_(0L)
+		, polytope_(polytope)/*, result_(0L)*/
 	{}
 
 	void setPolytope(const osg::Polytope& polytope) { polytope_ = polytope; }
@@ -565,7 +563,7 @@ private:
 
 private:
 	osg::Polytope polytope_;
-	osg::ref_ptr<osg::Group> result_;
+	//osg::ref_ptr<osg::Group> result_;
 };
 
 #endif // Cutter_h__

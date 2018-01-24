@@ -17,7 +17,7 @@
 
 #include <vector>
 #include <algorithm>
-//
+
 typedef std::vector<osg::ref_ptr<osg::Vec3dArray> > Vec3dArrayVector;
 
 //////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ class GWGEOLOGICAL_EXPORT SliceOperator
 	};
 
 public:
-	SliceOperator(bool isOnEarth = false, ModelType modelType = VOXEL);
+	SliceOperator(bool isOnEarth = false, ModelType modelType = HULL);
 	~SliceOperator();
 
 	osg::Node* slice(osg::Node* geoModel, const osg::Plane& slicePlane);

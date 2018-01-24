@@ -4,7 +4,7 @@
 #include <osg/Vec2>
 #include <osg/Vec3>
 #include <osg/Vec4>
-
+#include <osg/Plane>
 
 void add3(const osg::Vec3& first, const osg::Vec3& second, osg::Vec3& result);
 void add4(const osg::Vec4& first, const osg::Vec4& second, osg::Vec4& result);
@@ -29,7 +29,7 @@ float length3(const osg::Vec3& first);
 void lerp3(const osg::Vec3& from, const osg::Vec3& to, float t, osg::Vec3& result);
 void lerp4(const osg::Vec4& from, const osg::Vec4& to, float t, osg::Vec4& result);
 
-float linePlaneCoefficient(const osg::Vec3& linePoint, const osg::Vec3& lineDir, const osg::Vec3& planeNormal, const osg::Vec3& planePoint);
+float linePlaneCoefficient(const osg::Vec3& linePoint, const osg::Vec3& lineDir, const osg::Plane& plane/*const osg::Vec3& planeNormal, const osg::Vec3& planePoint*/);
 
 
 #endif

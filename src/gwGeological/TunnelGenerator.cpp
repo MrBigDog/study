@@ -13,6 +13,8 @@
 
 #include <iostream>
 
+#define COLUM_SEGMENT_NUM 8
+
 #define ON_AND_PROTECTED  osg::StateAttribute::ON | osg::StateAttribute::PROTECTED
 #define OFF_AND_PROTECTED osg::StateAttribute::OFF | osg::StateAttribute::PROTECTED
 
@@ -147,7 +149,7 @@ namespace
 		double r,
 		double angle,
 		SlicePLaneVector& out_slice_planes,
-		unsigned int segmentNum = 16)
+		unsigned int segmentNum = COLUM_SEGMENT_NUM)
 	{
 		osg::ref_ptr<osg::Group> arcGroup = new osg::Group;
 		const osg::Vec3d& center = s;
@@ -199,7 +201,7 @@ namespace
 		const osg::Plane& ep,
 		const osg::Vec3d& side,
 		/*const*/ SliceOperator& slicer,
-		double r, double angle, unsigned int segmentNum = 16)
+		double r, double angle, unsigned int segmentNum = COLUM_SEGMENT_NUM)
 	{
 		osg::ref_ptr<osg::Group> arcGroup = new osg::Group;
 		const osg::Vec3d& center = s;
@@ -228,6 +230,10 @@ namespace
 			osg::Plane cutPlane2(vnormalR, p2);
 
 			osg::ref_ptr<osg::Node> profilenode = slicer.slice(geologicalGroup, plane);
+			if (!profilenode.valid())
+			{
+				continue;
+			}
 
 			osg::Polytope pt;
 			pt.add(sp);

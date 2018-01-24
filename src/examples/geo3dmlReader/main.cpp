@@ -3,6 +3,7 @@
 #include <osg/BlendFunc>
 #include <osg/BlendColor>
 #include <osg/ShadeModel>
+#include <osg/LineSegment>
 #include <osg/MatrixTransform>
 #include <osg/ComputeBoundsVisitor>
 #include <osgDB/ReadFile>
@@ -13,6 +14,37 @@
 #include <osgViewer/ViewerEventHandlers>
 
 #include "VoxelMeshClipper.h"
+#include <osgAnimation/EaseMotion>
+
+static const char*color_vertex =
+{
+	"void main()  					\n"
+	"{								\n"
+	"	gl_Position = ftransform(); \n"
+	"}  							\n"
+};
+
+static const char* color_frag =
+{
+	"uniform float osg_FrameTime;				\n"
+	"											\n"
+	"void main()								\n"
+	"{											\n"
+	"	float a = fract(osg_FrameTime);			\n"
+	"	gl_FragColor = vec4(1.0, a, 0.0, 0.1);	\n"
+	"}											\n"
+};
+
+static void bloom_state(osg::StateSet*ss)
+{
+
+	osg::ref_ptr<osg::Program> program = new osg::Program;
+	program->addShader(new osg::Shader(osg::Shader::VERTEX, color_vertex));
+	program->addShader(new osg::Shader(osg::Shader::FRAGMENT, color_frag));
+
+	if (!ss)ss = new osg::StateSet;
+	ss->setAttributeAndModes(program);
+}
 
 void setTransparent(osg::StateSet* state, float alf)
 {
@@ -103,36 +135,145 @@ private:
 	osg::Vec3 _offset;
 };
 
+
+class GeomVisitor2 :public osg::NodeVisitor
+{
+public:
+	GeomVisitor2(const osg::Vec4& color, float rat)
+		:osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN)
+		, _rat(rat)
+		, _color(color)
+		, _scolor(osg::Vec4(1, 0, 0, 1))
+	{}
+
+	void apply(osg::Geode& geode)
+	{
+		for (unsigned int i = 0; i < geode.getNumDrawables(); ++i)
+		{
+			osg::Geometry* geom = geode.getDrawable(i)->asGeometry();
+			if (!geom) continue;
+
+			osg::Vec4Array* ca = dynamic_cast<osg::Vec4Array*>(geom->getColorArray());
+			if (!ca) continue;
+
+			for (unsigned int j = 0; j < ca->size(); ++j)
+			{
+				osg::Vec4 newColor = _scolor + (_color - _scolor)*_rat;
+				ca->at(j) = newColor;
+			}
+			ca->dirty();
+		}
+	}
+
+private:
+	float _rat;
+	osg::Vec4 _color;
+	osg::Vec4 _scolor;
+};
+
+class FGRedoutCallback : public osg::NodeCallback {
+public:
+	FGRedoutCallback()
+	{
+		_motion = new osgAnimation::InOutCubicMotion(0, 1, 1, osgAnimation::Motion::LOOP);
+		_desColor = osg::Vec4(1, 1, 0, 1);
+	}
+	virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
+	{
+		_motion->update(0.5);
+		float aa = _motion->getValue();
+
+		GeomVisitor2 gv2(_desColor, aa);
+		node->accept(gv2);
+	}
+private:
+	osg::Vec4 _desColor;
+	osg::ref_ptr<osgAnimation::InOutCubicMotion> _motion;
+};
+
+//
+//double Distance(const osg::Vec3d& a, const osg::Vec3d& b)
+//{
+//	return (a - b).length();
+//}
+
+
+//double DistanceLine(const osg::Vec3d& a, const osg::Vec3d& b, const osg::Vec3d& c)  // a和b是线段的两个端点， c是检测点
+//{
+//	osg::Vec3d ab = b - a;
+//	osg::Vec3d ac = c - a;
+//
+//	double f = ab * ac;
+//	if (f < 0) return (a - c).length();// Distance(a, c);
+//
+//	double d = ab * ab;
+//	if (f > d) return (b - c).length();// Distance(a, c);
+//
+//	f = f / d;
+//	osg::Vec3d D = a + ab*f;   // c在ab线段上的投影点
+//
+//	return (a - D).length();// Distance(a, D);
+//}
+
+
+//struct LineSegmentd
+//{
+//	LineSegmentd(const osg::Vec3d& s, const osg::Vec3d& e)
+//		:_s(s), _e(e)
+//	{}
+//	osg::Vec3d _s, _e;
+//};
+//typedef std::vector<LineSegmentd> LineSegmentVec;
+
+
 int main()
 {
-	osg::ref_ptr<osg::Node> geo3dmlNode = osgDB::readNodeFile("D:\\Geo3DGml_GIT\\Geo3DML\\data\\geo3dml_test_models\\cubeMode\\aa.xml");
+	//double dis = DistanceLine(osg::Vec3d(), osg::Vec3d(5, 5, 5), osg::Vec3d(7, 7, 7));
+	//double dis2 = dis*dis;
+	std::string fpath = "D:\\Geo3DGml_GIT\\Geo3DML\\data\\geo3dml_test_models\\cubeMode\\aa.xml";
+	std::string newpath = "E:\\DATA\\GeoData\\Workspace\\500\\workspace.xml";
+	std::string ffpath = "E:\\DATA\\VoxelData\\v1_all.osgb";
+	osg::ref_ptr<osg::Node> geo3dmlNode = osgDB::readNodeFile(newpath);
+
+
+
+
+	//geo3dmlNode->getOrCreateStateSet()->setAttributeAndModes(bloom_state());
+
+	//geo3dmlNode->setUpdateCallback(new FGRedoutCallback());
+
+
+
 	//osg::ref_ptr<osg::PolygonMode> pm = new osg::PolygonMode;
 	//pm->setMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::LINE);
 	//geo3dmlNode->getOrCreateStateSet()->setAttributeAndModes(pm, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
 
 	//osgDB::writeNodeFile(*geo3dmlNode, "test.osgb");
 
-	osg::ComputeBoundsVisitor cbv;
-	geo3dmlNode->accept(cbv);
+	//osg::Plane plane;
+	//plane.getNormal();
 
-	osg::BoundingBox bb = cbv.getBoundingBox();
+	//osg::ComputeBoundsVisitor cbv;
+	//geo3dmlNode->accept(cbv);
 
-	osg::Vec3 planePoint = bb.center();
-	osg::Vec3 planeNormal = osg::Vec3(1, 1, 1);
+	//osg::BoundingBox bb = cbv.getBoundingBox();
 
-	GeomVisitor gv(planePoint, planeNormal);
-	geo3dmlNode->accept(gv);
+	//osg::Vec3 planePoint = bb.center();
+	//osg::Vec3 planeNormal = osg::Vec3(1, 1, 1);
 
-	osg::ref_ptr<osg::Node> pf = gv._root;
-	FlatVisitor fv(planePoint);
-	pf->accept(fv);
-	osg::ref_ptr<osg::MatrixTransform> mt = new osg::MatrixTransform;
-	mt->addChild(pf);
-	mt->setMatrix(osg::Matrixd::translate(planePoint));
+	//GeomVisitor gv(planePoint, planeNormal);
+	//geo3dmlNode->accept(gv);
+
+	//osg::ref_ptr<osg::Node> pf = gv._root;
+	//FlatVisitor fv(planePoint);
+	//pf->accept(fv);
+	//osg::ref_ptr<osg::MatrixTransform> mt = new osg::MatrixTransform;
+	//mt->addChild(pf);
+	//mt->setMatrix(osg::Matrixd::translate(planePoint));
 
 	osg::ref_ptr<osg::Group> root = new osg::Group;
 	root->addChild(geo3dmlNode);
-	root->addChild(mt);
+	//root->addChild(mt);
 
 	osgViewer::Viewer viewer;
 	viewer.setSceneData(root);
