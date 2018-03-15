@@ -85,8 +85,9 @@ void PlaneGeometryOptimizer::apply(osg::Geode & geode)
 
 		osg::ref_ptr<osg::Vec2Array> ta = new osg::Vec2Array;
 		ta->reserve(va->size());
-		osg::ref_ptr<osg::Vec3Array> na = new osg::Vec3Array;
-		na->push_back(_normal);
+		osg::ref_ptr<osg::Vec3Array> na = new osg::Vec3Array(1);
+		(*na)[0] = _normal;
+		//na->push_back(_normal);
 		for (osg::Vec3Array::const_iterator vait = va->begin(); vait != va->end(); ++vait)
 		{
 			double dis_s = plane_s.distance(*vait)*0.02;
